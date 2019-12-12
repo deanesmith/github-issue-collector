@@ -3,22 +3,6 @@
     {
       "org": "jenkins-x",
       "repo": "jx"
-    },
-    {
-      "org": "cloudbees",
-      "repo": "cloudbees-jenkins-x-distro"
-    },
-    {
-      "org": "cloudbees",
-      "repo": "jenkins-x-security"
-    },
-    {
-      "org": "cloudbees",
-      "repo": "jxui-backend"
-    },
-    {
-      "org": "cloudbees",
-      "repo": "jxui-frontend"
     }
   ]
 }
