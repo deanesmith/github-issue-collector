@@ -26,8 +26,6 @@ TABLESPACE pg_default;
 ALTER TABLE public.repos
     OWNER to postgres;
 
-GRANT SELECT ON TABLE public.repos TO ghissuesuser WITH GRANT OPTION;
-
 ------------ Create users table ------------
 
 CREATE TABLE public.users
@@ -42,8 +40,6 @@ TABLESPACE pg_default;
 
 ALTER TABLE public.users
     OWNER to postgres;
-
-GRANT SELECT ON TABLE public.users TO ghissuesuser WITH GRANT OPTION;
 
 ------------ Create issues table ------------
 
@@ -75,9 +71,7 @@ ALTER TABLE public.issues
     ON UPDATE NO ACTION
     ON DELETE CASCADE;
 CREATE INDEX fki_fk_repos_issues_repo_id
-    ON public.repos(repo_id);	
-	
-GRANT SELECT ON TABLE public.issues TO ghissuesuser WITH GRANT OPTION;
+    ON public.repos(repo_id);
 	
 ------------ Create labels table ------------
 
@@ -104,8 +98,6 @@ ALTER TABLE public.labels
     ON DELETE CASCADE;
 CREATE INDEX fki_fk_labels_issues_issue_id
     ON public.labels(issue_id);	
-
-GRANT SELECT ON TABLE public.labels TO ghissuesuser WITH GRANT OPTION;
 
 ------------ Add tablefunc for crosstabs ------------
 
