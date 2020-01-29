@@ -36,12 +36,12 @@ def add_issue_to_db(repo_id, issue):
     else:
         pull_request = 0
 
-    sql = "INSERT INTO issues (issue_id, repo_id, node_id, number, user_id, state, pull_request, created_at, " \
-          "closed_at, json_data)" \
-          "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
+    sql = "INSERT INTO issues (issue_id, repo_id, node_id, number, user_id, state," \
+          " pull_request, created_at, closed_at, json_data)" \
+          " VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
 
-    val = (issue["id"], repo_id, issue["node_id"], issue["number"], issue["user"]["id"], issue["state"], pull_request,
-           created_at, closed_at, json.dumps(issue))
+    val = (issue["id"], repo_id, issue["node_id"], issue["number"], issue["user"]["id"],
+           issue["state"], pull_request, created_at, closed_at, json.dumps(issue))
 
     cursor.execute(sql, val)
     github_pgdb.commit()
@@ -65,13 +65,39 @@ def update_issue_in_db(repo_id, issue):
     cursor.execute(sql, val)
     github_pgdb.commit()
 
+    current_issue_labels = get_labels_for_issue(issue["id"], repo_id)
+
+    additions = []
+    deletions = []
+
+    # Get any additions
     if "labels" in issue:
-        delete_labels_from_db(issue["id"])
-        add_labels_to_db(issue["id"], issue["labels"])
+        update_issue_labels = issue["labels"]
+        for label in update_issue_labels:
+            label_id = label["id"]
+            if len(list(filter(lambda x: x.get("id") == label_id, current_issue_labels))) == 0:
+                additions.append(label)
+
+    if len(additions) > 0:
+        add_labels_to_db(issue["id"], additions)
+
+    # Get any deletions
+    if len(current_issue_labels) > 0:
+        if "labels" not in issue:
+            deletions.append(current_issue_labels)
+        else:
+            update_issue_labels = issue["labels"]
+            for label in current_issue_labels:
+                label_id = label["id"]
+                if len(list(filter(lambda x: x.get("id") == label_id, update_issue_labels))) == 0:
+                    deletions.append(label)
+
+    if len(deletions) > 0:
+        delete_labels_from_db(issue["id"], deletions)
 
 
 def add_labels_to_db(issue_id, labels):
-    print("Putting labels in to the database for issue " + str(issue_id))
+    print("Adding labels in to the database for issue " + str(issue_id))
     cursor = github_pgdb.cursor()
 
     for label in labels:
@@ -84,21 +110,56 @@ def add_labels_to_db(issue_id, labels):
         github_pgdb.commit()
 
 
-def delete_labels_from_db(issue_id):
+def update_labels_in_db(issue_id, labels):
+    print("Updating labels in the database for issue " + str(issue_id))
+    cursor = github_pgdb.cursor()
+
+    for label in labels:
+        sql = "UPDATE SET name = %s WHERE issue_id = %s AND label_id = "
+        val = (label["name"], label["id"])
+
+        cursor.execute(sql, val)
+        github_pgdb.commit()
+
+
+def delete_labels_from_db(issue_id, labels):
     print("Deleting labels for issue " + str(issue_id))
     cursor = github_pgdb.cursor()
 
-    sql = "DELETE FROM labels WHERE issue_id = " + str(issue_id)
+    for label in labels:
+        sql = "DELETE FROM labels WHERE issue_id = " + str(issue_id) + \
+              " AND label_id = " + str(label["id"])
+        cursor.execute(sql)
+        github_pgdb.commit()
+
+
+def get_labels_for_issue(issue_id, repo_id):
+    print("Getting labels from the database for issue " + str(issue_id))
+    cursor = github_pgdb.cursor()
+
+    sql = "SELECT labels.label_id, labels.node_id, labels.name FROM labels" \
+          " JOIN issues using(issue_id)" \
+          " WHERE labels.issue_id = " + str(issue_id) + \
+          " AND issues.repo_id = " + str(repo_id)
 
     cursor.execute(sql)
-    github_pgdb.commit()
+    records = cursor.fetchall()
+    cursor.close()
+
+    labels = []
+
+    for record in records:
+        labels.append({"id": record[0], "node_id": record[1], "name": record[2]})
+
+    return labels
 
 
 def issue_exists_in_db(repo_id, issue_id):
     cursor = github_pgdb.cursor()
     issue_exists = False
 
-    sql = "SELECT issue_id FROM issues WHERE issue_id = " + str(issue_id) + " AND repo_id = " + str(repo_id)
+    sql = "SELECT issue_id FROM issues WHERE issue_id = " + str(issue_id) + \
+          " AND repo_id = " + str(repo_id)
 
     cursor.execute(sql)
     result = cursor.fetchone()
