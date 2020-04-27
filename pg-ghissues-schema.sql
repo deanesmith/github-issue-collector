@@ -72,7 +72,8 @@ ALTER TABLE public.issues
     ON DELETE CASCADE;
 CREATE INDEX fki_fk_repos_issues_repo_id
     ON public.repos(repo_id);
-	
+
+
 ------------ Create labels table ------------
 
 CREATE TABLE public.labels
@@ -97,7 +98,36 @@ ALTER TABLE public.labels
     ON UPDATE NO ACTION
     ON DELETE CASCADE;
 CREATE INDEX fki_fk_labels_issues_issue_id
-    ON public.labels(issue_id);	
+    ON public.labels(issue_id);
+
+------------ Create releases table ------------
+
+CREATE TABLE public.releases
+(
+    release_id bigint primary key NOT NULL,
+	repo_id bigint NOT NULL,
+    name character varying(256),
+    tag_name character varying(256),
+    prerelease smallint,
+    downloads int,
+    created_at timestamp,
+    published_at timestamp
+)
+WITH (
+    OIDS = FALSE
+)
+TABLESPACE pg_default;
+
+ALTER TABLE public.releases
+    OWNER to postgres;
+
+ALTER TABLE public.releases
+    ADD CONSTRAINT fk_repos_releases_repo_id FOREIGN KEY (repo_id)
+    REFERENCES public.repos (repo_id) MATCH SIMPLE
+    ON UPDATE NO ACTION
+    ON DELETE CASCADE;
+CREATE INDEX fki_fk_repos_releases_repo_id
+    ON public.repos(repo_id);
 
 ------------ Add tablefunc for crosstabs ------------
 
